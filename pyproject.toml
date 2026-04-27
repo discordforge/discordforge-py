@@ -1,41 +1,75 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "discordforge"
-version = "0.1.1"
-description = "Python client for DiscordForge REST API"
+name = "discordforge-sdk-python"
+version = "1.0.0"
+description = "Truly async Python SDK for the DiscordForge bot listing platform"
 readme = "README.md"
-requires-python = ">=3.9"
-license = "MIT"
-authors = [
-  { name = "Ram2" }
-]
-keywords = ["discord", "bot", "api", "discordforge"]
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["discord", "discordforge", "bot", "async", "sdk"]
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Developers",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Topic :: Software Development :: Libraries :: Python Modules"
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
 ]
+
 dependencies = [
-  "requests>=2.31.0"
+    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0.0",
-  "pytest-asyncio>=0.23.0"
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "ruff>=0.4",
+    "pyright>=1.1",
+    "build",
+    "twine",
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.hatch.build.targets.wheel]
+packages = ["discordforge"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes (unused imports, undefined names)
+    "I",   # isort
+    "UP",  # pyupgrade (modern syntax)
+    "B",   # flake8-bugbear (common bugs)
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking (TYPE_CHECKING guards)
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B904",  # raise-without-from-inside-except (intentional in some spots)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["discordforge"]
+
+[tool.pyright]
+include = ["discordforge"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+reportMissingImports = true
+reportMissingTypeStubs = false

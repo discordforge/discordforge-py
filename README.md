@@ -1,156 +1,229 @@
-![DiscordForge](https://discordforge.org/images/logo.png)
+# discordforge-sdk-python
 
-# discordforge-py
+<p align="center">
+  <img src="https://camo.githubusercontent.com/17fab4e9878bf65d24c59ecd561f38b4a8dc1f860ba087451e98413b91922b80/68747470733a2f2f646973636f7264666f7267652e6f72672f696d616765732f6c6f676f2e706e67" alt="Banner" />
+</p>
 
-Python SDK for the [DiscordForge](https://discordforge.org) bot listing platform.  
-Fully async. Compatible with `discord.py` and other Python Discord libraries.
+A fully async Python SDK for the [DiscordForge](https://discordforge.org) bot listing platform. Works with small bots and large sharded/auto-sharded bots equally.
 
-[![PyPI version](https://img.shields.io/pypi/v/discordforge.svg?style=flat-square&cacheSeconds=300)](https://pypi.org/project/discordforge)
-[![PyPI downloads](https://img.shields.io/pypi/dm/discordforge.svg?style=flat-square&cacheSeconds=300)](https://pypi.org/project/discordforge)
-[![CI](https://img.shields.io/github/actions/workflow/status/discordforge/discordforge-py/test.yml?style=flat-square&cacheSeconds=300)](https://github.com/discordforge/discordforge-py/actions)
-[![license](https://img.shields.io/pypi/l/discordforge.svg?style=flat-square&cacheSeconds=300)](https://github.com/discordforge/discordforge-py/blob/main/LICENSE.txt)
+## Requirements
 
----
+- Python 3.11+
+- `httpx >= 0.27`
 
 ## Installation
 
 ```bash
-pip install discordforge
+pip install discordforge-sdk-python
 ```
 
-**Requirements:** Python 3.8 or higher.
-
-## discord.py Compatibility
-
-This package does not conflict with `discord.py` imports:
-
-- `discord.py` uses `import discord`
-- this package uses `import discordforge`
-
-Use `AsyncDiscordForgeClient` in `discord.py` bots to avoid blocking the event loop.
-
-## Quick Start
-
-```python
-from discordforge import DiscordForgeClient
-
-client = DiscordForgeClient(api_key="YOUR_API_KEY")
-
-# Post your bot stats
-client.post_bot_stats(server_count=1500, shard_count=5, user_count=50000)
-
-# Check if a user voted
-vote = client.check_vote(bot_id="YOUR_BOT_ID", user_id="USER_ID")
-if vote.has_voted:
-    print("Thanks for voting!")
-
-# Fetch your bot's public profile (no API key required)
-bot = client.get_bot(bot_id="YOUR_BOT_ID")
-print(f"{bot.name} — {bot.vote_count} votes")
-```
-
-## API Reference
-
-### `DiscordForgeClient(api_key?)`
-
-Synchronous client. Use for scripts and non-async bots.
-
-### `AsyncDiscordForgeClient(api_key?)`
-
-Async client. Use with `discord.py` and other async frameworks.
-
-### Methods
-
-| Method | Returns | Description | Rate Limit |
-|--------|---------|-------------|------------|
-| `post_bot_stats(server_count, shard_count?, user_count?, voice_connections?)` | `None` | Update your bot's stats | 1 req / 5 min |
-| `check_vote(bot_id, user_id)` | `VoteResult` | Check if a user voted in the last 12h | 60 req / min |
-| `get_bot(bot_id)` | `BotInfo` | Fetch your bot's public profile | — |
-| `sync_commands(commands)` | `SyncResult` | Sync up to 200 slash commands | — |
-| `sync_from_discordpy(command_source, category?, limit?, strict_limit?)` | `SyncResult` | Map and sync from a `discord.py` command tree | — |
-
-### Error Handling
-
-```python
-from discordforge import DiscordForgeClient, DiscordForgeAPIError, DiscordForgeValidationError
-
-client = DiscordForgeClient(api_key="YOUR_API_KEY")
-
-try:
-    client.post_bot_stats(server_count=1500)
-except DiscordForgeValidationError as exc:
-    print("Invalid input:", exc)
-except DiscordForgeAPIError as exc:
-    print(f"API error {exc.status_code}:", exc)
-```
-
-## Usage with discord.py
+## Quickstart
 
 ```python
 import os
 import discord
-from discord.ext import tasks
-from discordforge import AsyncDiscordForgeClient
+from discordforge import ForgeClient, AutoPoster
 
 bot = discord.Client(intents=discord.Intents.default())
-forge = AsyncDiscordForgeClient(api_key=os.environ["DISCORDFORGE_API_KEY"])
+forge = ForgeClient(os.environ["DISCORDFORGE_API_KEY"], bot_id=os.environ["BOT_ID"])
 
-@bot.event
-async def on_ready():
-    post_stats.start()
-
-@tasks.loop(minutes=5)
-async def post_stats():
-    await forge.post_bot_stats(
-        server_count=len(bot.guilds),
-        shard_count=getattr(bot, "shard_count", None),
-    )
-
-@bot.event
 async def setup_hook():
-    await forge.sync_from_discordpy(command_source=bot.tree, category="General")
+    await forge.sync_from_discordpy(bot.tree, category="General")
+    AutoPoster(forge, bot).start()
 
+bot.setup_hook = setup_hook
 bot.run(os.environ["BOT_TOKEN"])
 ```
 
-## Syncing Slash Commands
+`AutoPoster` posts your stats every 5 minutes automatically. It waits until all shards are ready before the first post, so counts are always accurate.
 
-The SDK accepts both DiscordForge custom format and raw Discord API format — auto-detected per command.
+Want to post every 30 minutes instead? Pass `interval=1800.0`. Minimum is 300s (API limit).
 
 ```python
-result = client.sync_commands(
-    commands=[
-        {
-            "name": "ban",
-            "description": "Ban a user from the server",
-            "usage": "/ban <user> [reason]",
-            "category": "Moderation",
-        },
-        {
-            "name": "play",
-            "description": "Play a song in your voice channel",
-            "type": 1,
-            "options": [{"name": "query", "type": 3, "required": True}],
-        },
-    ]
-)
-print(result.success, result.synced)
+AutoPoster(forge, bot, interval=1800.0).start()
 ```
 
-Each sync **replaces** all previously synced commands. Max 200 commands per request.
+## Usage with discord.py
 
-## Contributing
+### AutoPoster
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a PR.
+```python
+poster = AutoPoster(forge, bot, interval=300.0)  # minimum 300s
+poster.on("post", lambda stats: print(f"Posted {stats.server_count} servers"))
+poster.on("error", lambda err: print(f"Error: {err}"))
+poster.start()
+```
 
-Originally created by [Ram2](https://github.com/Antiscammer-Dev-team).
+Callbacks can be sync or async. The poster keeps running even if a post fails.
 
-## Links
+### Manual stat posting
 
-- [DiscordForge Dashboard](https://discordforge.org/dashboard)
-- [API Documentation](https://discordforge.org/support/developers)
-- [PyPI Package](https://pypi.org/project/discordforge)
+```python
+from discordforge import ForgeClient, BotStats
+
+forge = ForgeClient("YOUR_API_KEY", bot_id="YOUR_BOT_ID")
+
+@bot.event
+async def on_ready():
+    await forge.post_stats(BotStats(
+        server_count=len(bot.guilds),
+        shard_count=bot.shard_count,
+        user_count=len(bot.users),
+    ))
+```
+
+### Check if a user voted
+
+```python
+vote = await forge.check_vote("USER_DISCORD_ID")
+
+if vote.has_voted:
+    print(f"Voted at {vote.voted_at}, next vote available at {vote.next_vote_at}")
+else:
+    await ctx.send("You haven't voted yet! https://discordforge.org/bots/YOUR_BOT_ID")
+```
+
+### Get your bot's public listing info
+
+```python
+info = await forge.get_bot()
+print(f"{info.name} has {info.vote_count} votes across {info.server_count} servers")
+```
+
+### Sync slash commands
+
+Pass your discord.py command tree and it maps commands automatically:
+
+```python
+async def setup_hook():
+    await bot.tree.sync()
+    await forge.sync_from_discordpy(bot.tree, category="General")
+```
+
+Or pass a raw list if you want full control:
+
+```python
+from discordforge import DiscordCommand
+
+await forge.sync_commands([
+    DiscordCommand(name="ping", description="Check bot latency"),
+    DiscordCommand(name="help", description="Show help menu"),
+])
+```
+
+## Configuration
+
+```python
+from discordforge import ForgeClient, ClientOptions
+
+forge = ForgeClient(
+    "YOUR_API_KEY",
+    bot_id="YOUR_BOT_ID",
+    options=ClientOptions(
+        timeout=10.0,               # seconds per request
+        retries=3,                  # retries on 5xx / network errors
+        max_connections=10,         # httpx connection pool size
+        max_keepalive_connections=5,
+    ),
+)
+```
+
+## Error handling
+
+```python
+from discordforge.errors import ForgeAPIError, ForgeRateLimitError, ForgeAuthError, ForgeNotFoundError
+
+try:
+    await forge.post_stats(BotStats(server_count=100))
+except ForgeRateLimitError as e:
+    print(f"Rate limited, retry in {e.retry_after}s")
+except ForgeAuthError:
+    print("Invalid API key")
+except ForgeAPIError as e:
+    print(f"API error {e.status}: {e}")
+```
+
+| Exception | When raised |
+|---|---|
+| `ForgeRateLimitError` | 429 — backs off and retries automatically, only raises after all retries exhausted |
+| `ForgeAuthError` | 401 — invalid or missing API key |
+| `ForgeNotFoundError` | 404 — bot ID not found on DiscordForge |
+| `ForgeAPIError` | any other non-2xx response |
+
+## AutoPoster reference
+
+```python
+poster = AutoPoster(
+    forge,                      # ForgeClient instance
+    bot,                        # any discord client (discord.py, nextcord, py-cord, eris-style)
+    interval=300.0,             # seconds between posts (minimum 300 — API rate limit)
+    start_immediately=True,     # post as soon as ready fires
+)
+
+poster.on("post", callback)     # called after each successful post with BotStats
+poster.on("error", callback)    # called on failure — poster keeps running
+
+poster.start()                  # start the background task
+poster.stop()                   # cancel the task (can restart with start())
+poster.destroy()                # stop + clear all listeners
+poster.is_running               # bool
+```
+
+Callbacks can be sync or async — both work:
+
+```python
+async def on_post(stats):
+    await log_channel.send(f"Posted {stats.server_count} servers")
+
+def on_error(err):
+    print(f"Error: {err}")
+
+poster.on("post", on_post)
+poster.on("error", on_error)
+```
+
+## Types reference
+
+| Type | Fields |
+|---|---|
+| `BotStats` | `server_count`, `shard_count`, `user_count`, `voice_connections` |
+| `VoteMetadata` | `has_voted`, `voted_at`, `next_vote_at` |
+| `BotInfo` | `id`, `name`, `vote_count`, `server_count` |
+| `DiscordCommand` | `name`, `description`, `type`, `options` |
+| `CustomCommand` | `name`, `description`, `usage`, `category` |
+
+## Examples
+
+The [`examples/`](examples/) folder has ready-to-run scripts covering every API feature:
+
+| File | What it shows |
+|---|---|
+| [`post_stats.py`](examples/post_stats.py) | Post server/shard/user counts |
+| [`check_vote.py`](examples/check_vote.py) | Check if a user voted in the last 12h |
+| [`get_bot.py`](examples/get_bot.py) | Fetch your bot's public listing info |
+| [`sync_commands.py`](examples/sync_commands.py) | Sync commands using `DiscordCommand` or `CustomCommand` |
+| [`sync_commands_discordpy.py`](examples/sync_commands_discordpy.py) | Auto-sync directly from `bot.tree` |
+| [`autoposter.py`](examples/autoposter.py) | AutoPoster with post/error callbacks |
+| [`vote_reward.py`](examples/vote_reward.py) | Full vote reward flow with role assignment |
+| [`error_handling.py`](examples/error_handling.py) | Catching all error types |
+| [`bot.py`](examples/bot.py) | Complete bot with all slash commands and AutoPoster |
+
+All examples use environment variables for credentials — copy and set these before running:
+
+```bash
+export DISCORDFORGE_API_KEY="your_api_key"
+export BOT_ID="your_bot_discord_id"
+export BOT_TOKEN="your_bot_token"       # discord.py examples only
+export VOTER_ROLE_ID="role_id"          # vote_reward.py only
+```
+
+## Running tests
+
+```bash
+pip install -e ".[dev]"
+pytest tests/ -v
+```
 
 ## License
 
-[MIT](LICENSE.txt) © DiscordForge
+MIT
