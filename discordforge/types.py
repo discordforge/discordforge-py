@@ -12,13 +12,13 @@ class BotStats:
     voice_connections: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        d: dict[str, Any] = {"serverCount": self.server_count}
+        d: dict[str, Any] = {"server_count": self.server_count}
         if self.shard_count is not None:
-            d["shardCount"] = self.shard_count
+            d["shard_count"] = self.shard_count
         if self.user_count is not None:
-            d["userCount"] = self.user_count
+            d["user_count"] = self.user_count
         if self.voice_connections is not None:
-            d["voiceConnections"] = self.voice_connections
+            d["voice_connections"] = self.voice_connections
         return d
 
 
