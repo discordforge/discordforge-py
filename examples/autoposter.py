@@ -1,5 +1,5 @@
 """
-AutoPoster — automatically post bot stats every 5 minutes.
+AutoPoster – automatically post bot stats every 5 minutes.
 
 Waits for the bot's ready event before the first post so stats
 are always accurate. Callbacks can be sync or async.

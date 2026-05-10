@@ -1,7 +1,7 @@
 """
 Sync commands directly from a discord.py app_commands.CommandTree.
 
-ForgeClient reads the tree automatically — no manual mapping needed.
+ForgeClient reads the tree automatically – no manual mapping needed.
 Run this once after bot.tree.sync() to keep your listing page up to date.
 """
 

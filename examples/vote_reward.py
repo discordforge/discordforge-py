@@ -1,5 +1,5 @@
 """
-Full vote reward flow — check if a user voted and grant them a role.
+Full vote reward flow – check if a user voted and grant them a role.
 
 Typical pattern: user runs /claim, bot checks DiscordForge, grants reward.
 """

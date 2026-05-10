@@ -46,7 +46,7 @@ async def claim(interaction: discord.Interaction) -> None:
             await interaction.user.add_roles(role, reason="DiscordForge vote reward")
 
     await interaction.followup.send(
-        f"Thanks for voting! Next vote available: {result.next_vote_at or 'in 12 hours'}",
+        f"Thanks for voting! Next vote available: {result.next_vote_at or 'in 8 hours'}",
         ephemeral=True,
     )
 

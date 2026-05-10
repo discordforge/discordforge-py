@@ -145,9 +145,9 @@ except ForgeAPIError as e:
 
 | Exception | When raised |
 |---|---|
-| `ForgeRateLimitError` | 429 — backs off and retries automatically, only raises after all retries exhausted |
-| `ForgeAuthError` | 401 — invalid or missing API key |
-| `ForgeNotFoundError` | 404 — bot ID not found on DiscordForge |
+| `ForgeRateLimitError` | 429 – backs off and retries automatically, only raises after all retries exhausted |
+| `ForgeAuthError` | 401 – invalid or missing API key |
+| `ForgeNotFoundError` | 404 – bot ID not found on DiscordForge |
 | `ForgeAPIError` | any other non-2xx response |
 
 ## AutoPoster reference
@@ -156,12 +156,12 @@ except ForgeAPIError as e:
 poster = AutoPoster(
     forge,                      # ForgeClient instance
     bot,                        # any discord client (discord.py, nextcord, py-cord, eris-style)
-    interval=300.0,             # seconds between posts (minimum 300 — API rate limit)
+    interval=300.0,             # seconds between posts (minimum 300 – API rate limit)
     start_immediately=True,     # post as soon as ready fires
 )
 
 poster.on("post", callback)     # called after each successful post with BotStats
-poster.on("error", callback)    # called on failure — poster keeps running
+poster.on("error", callback)    # called on failure – poster keeps running
 
 poster.start()                  # start the background task
 poster.stop()                   # cancel the task (can restart with start())
@@ -169,7 +169,7 @@ poster.destroy()                # stop + clear all listeners
 poster.is_running               # bool
 ```
 
-Callbacks can be sync or async — both work:
+Callbacks can be sync or async – both work:
 
 ```python
 async def on_post(stats):
@@ -199,7 +199,7 @@ The [`examples/`](examples/) folder has ready-to-run scripts covering every API 
 | File | What it shows |
 |---|---|
 | [`post_stats.py`](examples/post_stats.py) | Post server/shard/user counts |
-| [`check_vote.py`](examples/check_vote.py) | Check if a user voted in the last 12h |
+| [`check_vote.py`](examples/check_vote.py) | Check if a user voted in the last 8h |
 | [`get_bot.py`](examples/get_bot.py) | Fetch your bot's public listing info |
 | [`sync_commands.py`](examples/sync_commands.py) | Sync commands using `DiscordCommand` or `CustomCommand` |
 | [`sync_commands_discordpy.py`](examples/sync_commands_discordpy.py) | Auto-sync directly from `bot.tree` |
@@ -208,7 +208,7 @@ The [`examples/`](examples/) folder has ready-to-run scripts covering every API 
 | [`error_handling.py`](examples/error_handling.py) | Catching all error types |
 | [`bot.py`](examples/bot.py) | Complete bot with all slash commands and AutoPoster |
 
-All examples use environment variables for credentials — copy and set these before running:
+All examples use environment variables for credentials – copy and set these before running:
 
 ```bash
 export DISCORDFORGE_API_KEY="your_api_key"

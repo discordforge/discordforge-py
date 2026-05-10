@@ -1,0 +1,68 @@
+name: Publish to TestPyPI (dry-run)
+
+# Publishes every push to main to TestPyPI as a smoke test.
+# Uses a version suffix (.devN) so real releases aren't affected.
+#
+# Requires Trusted Publisher setup on test.pypi.org:
+#   https://test.pypi.org/manage/project/discordforge/settings/publishing/
+#   Workflow: testpypi.yml
+#   Environment: testpypi
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  publish-test:
+    name: Build & Publish (TestPyPI)
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Generate dev version suffix
+        id: version
+        run: |
+          set -e
+
+          # Base version from pyproject.toml
+          BASE=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+
+          # Dev suffix uses the run number so every push gets a unique version
+          DEV_VERSION="${BASE}.dev${GITHUB_RUN_NUMBER}"
+
+          echo "Base version: $BASE"
+          echo "Dev version:  $DEV_VERSION"
+          echo "dev_version=$DEV_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Inject dev version into pyproject.toml and __init__.py
+        run: |
+          DEV="${{ steps.version.outputs.dev_version }}"
+          # pyproject.toml
+          sed -i -E "s/^version = \".*\"/version = \"${DEV}\"/" pyproject.toml
+          # discordforge/__init__.py
+          sed -i -E "s/^__version__ = \".*\"/__version__ = \"${DEV}\"/" discordforge/__init__.py
+
+          echo "--- pyproject.toml ---"
+          grep "^version" pyproject.toml
+          echo "--- __init__.py ---"
+          grep "^__version__" discordforge/__init__.py
+
+      - name: Install build tools
+        run: pip install hatchling build
+
+      - name: Build wheel + sdist
+        run: python -m build
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/

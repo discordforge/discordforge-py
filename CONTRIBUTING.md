@@ -36,7 +36,7 @@ ruff format .
 
 ## Submitting a PR
 
-- Keep PRs focused — one feature or fix per PR
+- Keep PRs focused – one feature or fix per PR
 - Make sure all tests pass
 - Update the README if you're changing public API
 - Reference any related issues in your PR description

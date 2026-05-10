@@ -1,6 +1,6 @@
 """
 Fetch your bot's public listing info from DiscordForge.
-No rate limit documented — treat as a low-frequency read.
+No rate limit documented – treat as a low-frequency read.
 """
 
 import asyncio

@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "discordforge-sdk-python"
-version = "1.0.0"
+name = "discordforge"
+version = "1.0.1"
 description = "Truly async Python SDK for the DiscordForge bot listing platform"
 readme = "README.md"
 requires-python = ">=3.11"

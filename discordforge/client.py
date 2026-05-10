@@ -39,7 +39,7 @@ class ForgeClient:
     async def check_vote(self, user_id: str, bot_id: str | None = None) -> VoteMetadata:
         bid = bot_id or self.bot_id
         if not bid:
-            raise ValueError("bot_id required — pass it to ForgeClient() or check_vote().")
+            raise ValueError("bot_id required – pass it to ForgeClient() or check_vote().")
         if not user_id or not user_id.strip():
             raise ValueError("user_id is required.")
         data = await self._http.request(
@@ -52,7 +52,7 @@ class ForgeClient:
     async def get_bot(self, bot_id: str | None = None) -> BotInfo:
         bid = bot_id or self.bot_id
         if not bid:
-            raise ValueError("bot_id required — pass it to ForgeClient() or get_bot().")
+            raise ValueError("bot_id required – pass it to ForgeClient() or get_bot().")
         data = await self._http.request("GET", f"/api/bots/{bid}")
         return BotInfo.from_dict(data)
 

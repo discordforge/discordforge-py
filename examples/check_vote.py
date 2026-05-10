@@ -1,5 +1,5 @@
 """
-Check whether a user has voted for your bot in the last 12 hours.
+Check whether a user has voted for your bot in the last 8 hours.
 
 Rate limit: 60 requests per minute.
 Use case: reward users with a role or bonus after voting.
