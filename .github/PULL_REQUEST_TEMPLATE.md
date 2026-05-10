@@ -14,10 +14,14 @@ Closes #
 - [ ] README updated (if public API changed)
 - [ ] Added to CHANGELOG if applicable
 
-## Release checklist
+---
 
-<!-- Only required if this PR will trigger a release. Skip otherwise. -->
+## Release process (for maintainers)
 
-- [ ] Version bumped in **both** `pyproject.toml` and `discordforge/__init__.py` (they must match)
-- [ ] Version follows [SemVer](https://semver.org/) (MAJOR.MINOR.PATCH)
-- [ ] Git tag will be `v<version>` (e.g. `v1.0.2` for version `1.0.2`)
+Releases are handled by the `Release` workflow — do **not** bump versions manually in PRs.
+
+1. Merge this PR to `main`
+2. Go to **Actions → Release → Run workflow**
+3. Choose `bump` (patch/minor/major) or set `custom_version`
+4. Workflow bumps `pyproject.toml` + `__init__.py`, tags, and creates a GitHub Release
+5. The Release event triggers `publish.yml` which waits for maintainer approval before uploading to PyPI

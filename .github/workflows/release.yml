@@ -1,0 +1,141 @@
+name: Release
+
+# Manual release trigger. Bumps version, commits, tags, and creates a GitHub Release.
+# The Release event then triggers publish.yml which actually uploads to PyPI
+# (gated by required reviewers on the "pypi" environment).
+#
+# Usage:
+#   Actions -> Release -> Run workflow
+#     bump:           patch / minor / major  (ignored if custom_version is set)
+#     custom_version: exact version like "1.0.2" or "2.0.0-rc.1" (leave empty to auto-bump)
+#
+# If custom_version equals the current version in pyproject.toml, no bump commit
+# is made - the workflow just tags the current HEAD and creates a Release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type (ignored if custom_version is set)'
+        required: false
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: 'Exact version (e.g. 1.0.2). Leave empty to auto-bump.'
+        required: false
+        type: string
+
+jobs:
+  release:
+    name: Bump, tag, and create release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # push commit/tag + create release
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Compute new version
+        id: version
+        run: |
+          set -e
+          CURRENT=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          BUMP="${{ inputs.bump }}"
+          CUSTOM="${{ inputs.custom_version }}"
+
+          NEW=$(python - <<EOF
+          current = "$CURRENT"
+          bump = "$BUMP"
+          custom = "$CUSTOM".strip()
+
+          if custom:
+              print(custom)
+          else:
+              parts = current.split(".")
+              if len(parts) < 3:
+                  raise SystemExit(f"Cannot auto-bump non-semver version: {current}")
+              major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+              if bump == "major":
+                  major, minor, patch = major + 1, 0, 0
+              elif bump == "minor":
+                  minor, patch = minor + 1, 0
+              else:  # patch
+                  patch += 1
+              print(f"{major}.{minor}.{patch}")
+          EOF
+          )
+
+          echo "Current: $CURRENT"
+          echo "New:     $NEW"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag does not already exist
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if git rev-parse "refs/tags/$TAG" >/dev/null 2>&1 || git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+            echo "::error::Tag $TAG already exists. Pick a different version."
+            exit 1
+          fi
+          echo "✓ Tag $TAG is free"
+
+      - name: Update version in files (if different)
+        id: update
+        run: |
+          NEW="${{ steps.version.outputs.version }}"
+          CURRENT="${{ steps.version.outputs.current }}"
+
+          if [ "$NEW" = "$CURRENT" ]; then
+            echo "Version unchanged ($CURRENT). Skipping file bump - will tag current HEAD."
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          else
+            sed -i -E "s/^version = \".*\"/version = \"${NEW}\"/" pyproject.toml
+            sed -i -E "s/^__version__ = \".*\"/__version__ = \"${NEW}\"/" discordforge/__init__.py
+
+            echo "--- pyproject.toml ---"
+            grep "^version" pyproject.toml
+            echo "--- __init__.py ---"
+            grep "^__version__" discordforge/__init__.py
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit version bump
+        if: steps.update.outputs.bumped == 'true'
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git add pyproject.toml discordforge/__init__.py
+          git commit -m "chore: release ${TAG}"
+          git push origin HEAD:main
+
+      - name: Create and push tag
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2.0.9
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          make_latest: "true"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
