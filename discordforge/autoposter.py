@@ -131,6 +131,29 @@ class AutoPoster:
         if ready_flag is True:
             return
 
+        # Use add_listener + asyncio.Event instead of wait_for("ready").
+        # using wait_for registers a predicate against every dispatched event which
+        # spawns a Client._run_event task per-event and is like catastrophic at scale.
+        add_listener = getattr(self._discord, "add_listener", None)
+        remove_listener = getattr(self._discord, "remove_listener", None)
+
+        if callable(add_listener):
+            ready_event = asyncio.Event()
+
+            async def _on_ready(*_: object) -> None:
+                ready_event.set()
+
+            add_listener(_on_ready, "on_ready")
+            try:
+                await asyncio.wait_for(ready_event.wait(), timeout=300.0)
+            except TimeoutError:
+                log.warning("AutoPoster: timed out waiting for ready event, posting anyway.")
+            finally:
+                if callable(remove_listener):
+                    remove_listener(_on_ready, "on_ready")
+            return
+
+        # Fallback for non-discord.py clients that don't have add_listener
         wait_for = getattr(self._discord, "wait_for", None)
         if callable(wait_for):
             try:
@@ -142,9 +165,9 @@ class AutoPoster:
 
         once = getattr(self._discord, "once", None)
         if callable(once):
-            ready_event: asyncio.Event = asyncio.Event()
-            once("ready", lambda *_: ready_event.set())
+            ready_event_: asyncio.Event = asyncio.Event()
+            once("ready", lambda *_: ready_event_.set())
             try:
-                await asyncio.wait_for(ready_event.wait(), timeout=300.0)
+                await asyncio.wait_for(ready_event_.wait(), timeout=300.0)
             except TimeoutError:
                 log.warning("AutoPoster: timed out waiting for ready event, posting anyway.")
