@@ -82,7 +82,7 @@ class AutoPoster:
     def start(self) -> None:
         if self._task and not self._task.done():
             return
-        self._task = asyncio.get_event_loop().create_task(self._run())
+        self._task = asyncio.get_running_loop().create_task(self._run())
 
     def stop(self) -> None:
         if self._task:

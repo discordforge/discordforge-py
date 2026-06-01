@@ -149,7 +149,8 @@ async def test_autoposter_waits_for_ready():
     assert len(posted) == 1
 
 
-def test_autoposter_is_running():
+@pytest.mark.asyncio
+async def test_autoposter_is_running():
     forge = ForgeClient("key", bot_id="123", options=ClientOptions(seed_known_limits=False))
     discord = FakeDiscordClient()
     poster = AutoPoster(forge, discord, interval=300.0)
