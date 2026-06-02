@@ -1,8 +1,10 @@
-# discordforge python library
-
 <p align="center">
   <img src="https://camo.githubusercontent.com/17fab4e9878bf65d24c59ecd561f38b4a8dc1f860ba087451e98413b91922b80/68747470733a2f2f646973636f7264666f7267652e6f72672f696d616765732f6c6f676f2e706e67" alt="Banner" />
 </p>
+
+[![PyPI version](https://img.shields.io/pypi/v/discordforge.svg)](https://pypi.org/project/discordforge/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![Python](https://img.shields.io/pypi/pyversions/discordforge.svg)](https://pypi.org/project/discordforge/)
 
 A fully async Python SDK for the [DiscordForge](https://discordforge.org) bot listing platform. Works with small bots and large sharded/auto-sharded bots equally.
 
